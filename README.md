@@ -96,6 +96,159 @@ If an agent is allowed to directly execute actions based solely on raw model out
 
 Therefore, modern agentic systems must implement **control layers that translate probabilistic outputs into deterministic execution paths**.
 
+### 3.1 Constrained Outputs and the “Function Inventory” Pattern
+
+One practical solution that has emerged in modern agentic architectures is the use of **constrained structured outputs**, typically expressed as JSON objects. Instead of allowing the model to generate arbitrary instructions in natural language, the LLM is instructed to produce responses that conform to a predefined schema.
+
+These structured responses are then mapped to an internal set of executable functions. This collection of callable operations can be conceptualized as an **Asset Functions Inventory**—a curated catalog of capabilities that the agent is allowed to invoke.
+
+For example, an agent may produce the following structured output:
+
+```json id="agent-call-01"
+{
+  "function": "create_support_ticket",
+  "parameters": {
+    "customer_id": "C1042",
+    "priority": "high",
+    "issue_type": "delivery_delay"
+  }
+}
+```
+
+The agent itself does not execute the operation directly. Instead, the output is passed to a deterministic execution layer that verifies the structure and then invokes the corresponding internal function.
+
+In this architecture, the LLM is responsible for **selecting the appropriate capability**, while the system infrastructure remains responsible for **executing it safely**.
+
+---
+
+### 3.2 The Asset Functions Inventory
+
+The Asset Functions Inventory acts as a **controlled interface between reasoning and action**. Each function represents a bounded capability within the system.
+
+Typical entries might include:
+
+* `create_invoice`
+* `update_customer_profile`
+* `schedule_delivery`
+* `query_inventory`
+* `send_notification`
+
+Every function includes:
+
+* a strict parameter schema
+* validation rules
+* deterministic execution logic
+
+The agent cannot invent new functions outside this inventory. Its decision space is limited to **selecting among predefined capabilities**.
+
+This approach transforms the role of the LLM from a free-form generator of commands into a **decision-making layer that chooses from a known set of tools**.
+
+---
+
+### 3.3 Advantages of the Pattern
+
+This architectural pattern introduces several advantages.
+
+**1. Stronger Safety Guarantees**
+
+Because the agent can only call functions defined in the inventory, it cannot directly perform arbitrary system actions. All operations are mediated through predefined interfaces.
+
+**2. Deterministic Execution**
+
+Even though the model decides which function to call, the actual execution remains fully deterministic. Once the function is selected and parameters are validated, the underlying software behaves predictably.
+
+**3. Clear Separation of Concerns**
+
+The architecture separates responsibilities into distinct layers:
+
+* LLM: reasoning and tool selection
+* validation layer: schema enforcement
+* execution layer: deterministic business logic
+
+This modularity simplifies system design and maintenance.
+
+**4. Observability and Auditing**
+
+Because actions are expressed as structured calls, they can be logged, monitored, and analyzed. This improves transparency in AI-assisted decision making.
+
+**5. Incremental Capability Expansion**
+
+New agent abilities can be introduced simply by adding new functions to the inventory, without retraining the model or redesigning the entire system.
+
+---
+
+### 3.4 Limitations and Trade-Offs
+
+Despite its advantages, the Asset Functions Inventory approach introduces certain trade-offs.
+
+**1. Reduced Flexibility**
+
+Constraining the agent to predefined functions limits its ability to propose novel solutions outside the existing capability set. In highly dynamic environments, this may restrict creativity.
+
+**2. Schema Fragility**
+
+Structured outputs depend on strict adherence to schemas. Even small formatting deviations can cause parsing errors or rejected actions. Robust validation and fallback mechanisms are therefore required.
+
+**3. Prompt Engineering Complexity**
+
+Designing prompts that reliably produce structured outputs across diverse contexts can be challenging. Developers must carefully guide the model to maintain consistent formatting.
+
+**4. Capability Explosion**
+
+As systems grow, the number of available functions may expand significantly. Managing and documenting a large function inventory becomes an architectural challenge in itself.
+
+---
+
+### 3.5 A Practical Compromise
+
+The constrained JSON + function inventory pattern represents a pragmatic compromise between two competing needs:
+
+* the **flexible reasoning power** of large language models
+* the **strict reliability requirements** of software systems
+
+Rather than allowing LLMs to directly manipulate infrastructure, modern agentic architectures treat them as **decision engines that operate within a controlled action space**.
+
+This approach does not eliminate the probabilistic nature of AI reasoning. Instead, it channels that reasoning through well-defined interfaces, transforming uncertain model outputs into safe, deterministic operations within the broader system infrastructure.
+
+### 3.6 Industry Approaches and Emerging Standards
+
+While the constrained JSON and Asset Functions Inventory pattern provides a practical architectural solution, most modern agent platforms implement this idea within broader orchestration frameworks.
+
+The most widely used approach in the current ecosystem is commonly referred to as **tool calling** or **function calling**.
+
+In this model, the LLM is provided with a structured list of available tools, each defined with:
+
+* a function name
+* a description of its purpose
+* a parameter schema
+
+During reasoning, the model may choose to invoke one of these tools by generating a structured call that matches the schema. The orchestration layer then validates the call and executes the corresponding function in the deterministic infrastructure.
+
+This pattern is implemented in many modern AI frameworks and platforms, including:
+
+* orchestration frameworks such as LangChain and LlamaIndex
+* agent frameworks such as AutoGen and CrewAI
+* built-in tool-calling interfaces provided by models from organizations such as OpenAI, Google, and Anthropic
+
+These systems extend the basic idea of function inventories with additional capabilities such as:
+
+* agent memory systems
+* multi-step planning
+* tool selection strategies
+* retry and recovery mechanisms
+* multi-agent coordination
+
+In practice, most production agent systems combine several layers:
+
+1. an **LLM reasoning layer**
+2. a **tool or function interface**
+3. an **orchestration framework**
+4. a **deterministic execution infrastructure**
+
+Within this broader architecture, the constrained function inventory remains a fundamental building block. It defines the **safe operational boundary** within which an AI agent is allowed to act.
+
+As agentic systems continue to evolve, this pattern appears increasingly likely to remain a central design principle for integrating probabilistic AI reasoning with reliable software infrastructure.
+
 ---
 
 ## 4. The Probabilistic–Deterministic Funnel
